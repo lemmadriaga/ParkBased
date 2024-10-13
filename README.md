@@ -10,7 +10,7 @@ ParkBased is a web application designed to simplify the parking experience for u
 - [Installation](#installation)
 - [Usage](#usage)
 - [Contributing](#contributing)
-- [License](#license)
+
 
 ## Features
 

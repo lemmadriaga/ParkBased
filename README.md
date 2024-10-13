@@ -10,7 +10,7 @@ ParkBased is a web application designed to simplify the parking experience for u
 - [Installation](#installation)
 - [Usage](#usage)
 - [Contributing](#contributing)
-- [License](#license)
+
 
 ## Features
 
@@ -38,13 +38,13 @@ The design of ParkBased focuses on user experience and accessibility. Key design
 
 ### User Interface Screenshots
 
-![Landing Page](path/to/landing-page-screenshot.png)
+![Landing Page](src/assets/Screenshots/landing-page.png)
 *Landing Page*
 
-![User Dashboard](path/to/user-dashboard-screenshot.png)
+![User Dashboard](src/assets/Screenshots/user-dashboard.png)
 *User Dashboard*
 
-![Admin Dashboard](src\assets\Screenshots\admin-dashboard.png)
+![Admin Dashboard](src/assets/Screenshots/admin-dashboard.png)
 *Admin Dashboard*
 
 ### Design Assets
@@ -57,7 +57,7 @@ To run the project locally, follow these steps:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/parkbased.git
+   git clone https://github.com/lemmadriaga/parkbased.git
    ```
 
 2. Navigate to the project directory:

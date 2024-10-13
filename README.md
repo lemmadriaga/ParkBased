@@ -26,7 +26,6 @@ ParkBased is a web application designed to simplify the parking experience for u
 - **Frontend:** React, Tailwind CSS
 - **Backend:** Firebase (Firestore, Authentication)
 - **Libraries:** React Router, Recharts (for charts), JsBarcode, QRCode
-- **Deployment:** Vercel / Netlify (or any preferred hosting service)
 
 ## Design
 
@@ -51,7 +50,6 @@ The design of ParkBased focuses on user experience and accessibility. Key design
 ### Design Assets
 
 - Icons: [Lucide Icons](https://lucide.dev/)
-- Background Images: Custom images sourced from [Unsplash](https://unsplash.com/) or similar platforms.
 
 ## Installation
 
@@ -105,10 +103,6 @@ Contributions are welcome! If you have suggestions for improvements or want to r
    git push origin feature/YourFeature
    ```
 5. Open a pull request.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 

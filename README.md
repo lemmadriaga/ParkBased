@@ -38,10 +38,10 @@ The design of ParkBased focuses on user experience and accessibility. Key design
 
 ### User Interface Screenshots
 
-![Landing Page](path/to/landing-page-screenshot.png)
+![Landing Page](src/assets/Screenshots/landing-page.png)
 *Landing Page*
 
-![User Dashboard](path/to/user-dashboard-screenshot.png)
+![User Dashboard](src/assets/Screenshots/user-dashboard.png)
 *User Dashboard*
 
 ![Admin Dashboard](src/assets/Screenshots/admin-dashboard.png)

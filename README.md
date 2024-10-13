@@ -44,7 +44,7 @@ The design of ParkBased focuses on user experience and accessibility. Key design
 ![User Dashboard](path/to/user-dashboard-screenshot.png)
 *User Dashboard*
 
-![Admin Dashboard](src\assets\Screenshots\admin-dashboard.png)
+![Admin Dashboard](src/assets/Screenshots/admin-dashboard.png)
 *Admin Dashboard*
 
 ### Design Assets

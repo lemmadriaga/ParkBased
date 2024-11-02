@@ -20,9 +20,6 @@
     "recharts": "^2.13.0",
     "web-vitals": "^2.1.4"
   },
-  "resolutions": {
-    "rimraf": "^4.0.0"
-  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",

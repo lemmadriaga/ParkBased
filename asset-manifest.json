@@ -1,0 +1,17 @@
+{
+  "files": {
+    "main.css": "/Parkbased/static/css/main.906dfc7d.css",
+    "main.js": "/Parkbased/static/js/main.23767b5a.js",
+    "static/js/453.0cff968a.chunk.js": "/Parkbased/static/js/453.0cff968a.chunk.js",
+    "static/media/landingpage-bg.jpg": "/Parkbased/static/media/landingpage-bg.8e4c0a9ef55808d45b63.jpg",
+    "static/media/login-bg.jpg": "/Parkbased/static/media/login-bg.751623de2ea1159e4d52.jpg",
+    "index.html": "/Parkbased/index.html",
+    "main.906dfc7d.css.map": "/Parkbased/static/css/main.906dfc7d.css.map",
+    "main.23767b5a.js.map": "/Parkbased/static/js/main.23767b5a.js.map",
+    "453.0cff968a.chunk.js.map": "/Parkbased/static/js/453.0cff968a.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.906dfc7d.css",
+    "static/js/main.23767b5a.js"
+  ]
+}

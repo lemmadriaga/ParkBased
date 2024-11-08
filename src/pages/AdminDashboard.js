@@ -28,11 +28,11 @@ import {
   Legend,
 } from "recharts";
 import { Calendar, Clock, DollarSign, Car } from "lucide-react";
-import { signOut } from "firebase/auth"; 
-import { useNavigate } from "react-router-dom"; 
+import { signOut } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
 
 const AdminDashboard = () => {
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [profits, setProfits] = useState([]);
   const [selectedTab, setSelectedTab] = useState("bookings");
@@ -141,13 +141,33 @@ const AdminDashboard = () => {
     return timestamp.toDate().toLocaleString();
   }, []);
 
+  // const fetchUserName = useCallback(async (userId) => {
+  //   try {
+  //     const userRef = doc(db, "users", userId);
+  //     const userDoc = await getDoc(userRef);
+  //     if (userDoc.exists()) {
+  //       const userData = userDoc.data();
+  //       return `${userData.firstName} ${userData.lastName}`;
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching user data:", error);
+  //   }
+  //   return "Unknown User";
+  // }, []);
+
+  const userCache = {};
+
   const fetchUserName = useCallback(async (userId) => {
+    if (userCache[userId]) return userCache[userId];
+
     try {
       const userRef = doc(db, "users", userId);
       const userDoc = await getDoc(userRef);
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        return `${userData.firstName} ${userData.lastName}`;
+        const fullName = `${userData.firstName} ${userData.lastName}`;
+        userCache[userId] = fullName;
+        return fullName;
       }
     } catch (error) {
       console.error("Error fetching user data:", error);
@@ -167,12 +187,12 @@ const AdminDashboard = () => {
 
     if (now >= endTime && booking.status === "approved") {
       try {
-        const batch = writeBatch(db); 
+        const batch = writeBatch(db);
         const bookingRef = doc(db, "bookings", booking.id);
         batch.update(bookingRef, { status: "completed" });
 
         console.log(`Booking ${booking.id} marked as completed`);
-        await batch.commit(); 
+        await batch.commit();
         return true;
       } catch (error) {
         console.error("Error updating booking status:", error);
@@ -181,34 +201,67 @@ const AdminDashboard = () => {
     return false;
   }, []);
 
-  const fetchBookings = useCallback(() => {
+  // const fetchBookings = useCallback(() => {
+  //   const bookingsRef = collection(db, "bookings");
+
+  //   const q = query(bookingsRef);
+
+  //   const unsubscribe = onSnapshot(q, async (querySnapshot) => {
+  //     const bookingsData = await Promise.all(
+  //       querySnapshot.docs.map(async (doc) => {
+  //         const bookingData = doc.data();
+  //         const userName = await fetchUserName(bookingData.userId);
+  //         return {
+  //           id: doc.id,
+  //           ...bookingData,
+  //           userName,
+  //           checkInTime: bookingData.checkInTime,
+  //         };
+  //       })
+  //     );
+  //     setBookings(bookingsData);
+  //   });
+
+  //   return () => unsubscribe();
+  // }, [fetchUserName]);
+  const fetchBookings = useCallback(async () => {
     const bookingsRef = collection(db, "bookings");
-
-    const q = query(bookingsRef);
-
-    const unsubscribe = onSnapshot(q, async (querySnapshot) => {
-      const bookingsData = await Promise.all(
-        querySnapshot.docs.map(async (doc) => {
-          const bookingData = doc.data();
-          const userName = await fetchUserName(bookingData.userId);
-          return {
-            id: doc.id,
-            ...bookingData,
-            userName,
-            checkInTime: bookingData.checkInTime, 
-          };
-        })
-      );
-      setBookings(bookingsData);
-    });
-
-    return () => unsubscribe();
+    const querySnapshot = await getDocs(bookingsRef);
+    
+    const bookingsData = await Promise.all(
+      querySnapshot.docs.map(async (doc) => {
+        const bookingData = doc.data();
+        const userName = await fetchUserName(bookingData.userId);
+        return {
+          id: doc.id,
+          ...bookingData,
+          userName,
+          checkInTime: bookingData.checkInTime,
+        };
+      })
+    );
+    setBookings(bookingsData);
   }, [fetchUserName]);
 
+  // const fetchProfits = useCallback(async () => {
+  //   try {
+  //     const profitsRef = collection(db, "profits");
+  //     const snapshot = await getDocs(profitsRef);
+  //     const profitsData = snapshot.docs.map((doc) => ({
+  //       id: doc.id,
+  //       ...doc.data(),
+  //     }));
+  //     setProfits(profitsData);
+  //   } catch (error) {
+  //     console.error("Error fetching profits:", error);
+  //   }
+  // }, []);
   const fetchProfits = useCallback(async () => {
     try {
       const profitsRef = collection(db, "profits");
-      const snapshot = await getDocs(profitsRef);
+      const q = query(profitsRef, where("date", ">=", new Date().toISOString().split("T")[0])); // Fetch only today's data
+      const snapshot = await getDocs(q);
+      
       const profitsData = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
@@ -219,53 +272,99 @@ const AdminDashboard = () => {
     }
   }, []);
 
+
+  // const fetchParkingData = useCallback(async () => {
+  //   try {
+  //     // Gonna remove logic related to parkingSlots collection because it's causing a bug
+  //     // and we didn't manually input it in the database
+  //     // const parkingSlotsRef = collection(db, "parkingSlots");
+  //     // const querySnapshot = await getDocs(parkingSlotsRef);
+  //     // let total = 0;
+  //     // let occupied = 0;
+  //     // let reserved = 0;
+  //     // let available = 0;
+  //     // let pwd = 0;
+  //     // querySnapshot.forEach((doc) => {
+  //     //   const slotData = doc.data();
+  //     //   total++;
+  //     //   switch (slotData.status) {
+  //     //     case "occupied":
+  //     //       occupied++;
+  //     //       break;
+  //     //     case "reserved":
+  //     //       reserved++;
+  //     //       break;
+  //     //     case "available":
+  //     //       available++;
+  //     //       break;
+  //     //   }
+  //     //   if (slotData.isPWD) {
+  //     //     pwd++;
+  //     //   }
+  //     // });
+  //     // setParkingStats({
+  //     //   total,
+  //     //   occupied,
+  //     //   reserved,
+  //     //   available,
+  //     //   pwd,
+  //     // });
+  //     // setSlotUtilization([
+  //     //   { name: "Available", value: available, color: "#10B981" },
+  //     //   { name: "Occupied", value: occupied, color: "#EF4444" },
+  //     //   { name: "Reserved", value: reserved, color: "#F59E0B" },
+  //     //   { name: "PWD", value: pwd, color: "#3B82F6" },
+  //     // ]);
+  //   } catch (error) {
+  //     console.error("Error fetching parking data:", error);
+  //   }
+  // }, []);
+
   const fetchParkingData = useCallback(async () => {
     try {
-      // Gonna remove logic related to parkingSlots collection because it's causing a bug
-      // and we didn't manually input it in the database
-
-      // const parkingSlotsRef = collection(db, "parkingSlots");
-      // const querySnapshot = await getDocs(parkingSlotsRef);
-      // let total = 0;
-      // let occupied = 0;
-      // let reserved = 0;
-      // let available = 0;
-      // let pwd = 0;
-      // querySnapshot.forEach((doc) => {
-      //   const slotData = doc.data();
-      //   total++;
-      //   switch (slotData.status) {
-      //     case "occupied":
-      //       occupied++;
-      //       break;
-      //     case "reserved":
-      //       reserved++;
-      //       break;
-      //     case "available":
-      //       available++;
-      //       break;
-      //   }
-      //   if (slotData.isPWD) {
-      //     pwd++;
-      //   }
-      // });
-      // setParkingStats({
-      //   total,
-      //   occupied,
-      //   reserved,
-      //   available,
-      //   pwd,
-      // });
-      // setSlotUtilization([
-      //   { name: "Available", value: available, color: "#10B981" },
-      //   { name: "Occupied", value: occupied, color: "#EF4444" },
-      //   { name: "Reserved", value: reserved, color: "#F59E0B" },
-      //   { name: "PWD", value: pwd, color: "#3B82F6" },
-      // ]);
+      // Implement any specific logic needed for parking data if real-time updates aren’t essential
+      const parkingStatusRef = doc(db, "parkingStatus", "current");
+      const docSnap = await getDoc(parkingStatusRef);
+      if (docSnap.exists()) {
+        setParkingStatus(docSnap.data());
+      }
     } catch (error) {
       console.error("Error fetching parking data:", error);
     }
   }, []);
+
+  useEffect(() => {
+    // Fetch bookings and profits data only once on mount
+    fetchBookings();
+    fetchProfits();
+  
+    // Set up a real-time listener for parking status
+    const parkingStatusRef = doc(db, "parkingStatus", "current");
+    const unsubscribeParkingStatus = onSnapshot(parkingStatusRef, (doc) => {
+      if (doc.exists()) {
+        const data = doc.data();
+        setParkingStats({
+          total: data.total || 0,
+          occupied: data.occupied || 0,
+          reserved: data.reserved || 0,
+          available: data.available || 0,
+          pwd: data.pwd || 0,
+        });
+        setSlotUtilization([
+          { name: "Available", value: data.available || 0, color: "#10B981" },
+          { name: "Occupied", value: data.occupied || 0, color: "#EF4444" },
+          { name: "Reserved", value: data.reserved || 0, color: "#F59E0B" },
+          { name: "PWD", value: data.pwd || 0, color: "#3B82F6" },
+        ]);
+        setParkingLocations(data.locations || {});
+      }
+    });
+  
+    // Cleanup function to unsubscribe from the parking status listener
+    return () => {
+      unsubscribeParkingStatus();
+    };
+  }, [fetchBookings, fetchProfits]);
 
   useEffect(() => {
     const paid = bookings.filter((b) => b.status === "approved" && b.isPaid);
@@ -289,40 +388,66 @@ const AdminDashboard = () => {
   const updateParkingStatus = useCallback(async (updates) => {
     const batch = writeBatch(db);
     const parkingStatusRef = doc(db, "parkingStatus", "current");
-
-    // Again, we're gonna remove logic related to updating parking slots
-    // Object.entries(updates.locations || {}).forEach(([locationKey, locationData]) => {
-    //   Object.entries(locationData).forEach(([vehicleType, typeData]) => {
-    //     const { occupied, reserved } = typeData;
-    //     for (let i = 1; i <= typeData.total; i++) {
-    //       const slotId = `${locationKey}_${vehicleType}_${i}`;
-    //       const slotRef = doc(db, "parkingSlots", slotId);
-    //       if (i <= occupied) {
-    //         batch.set(slotRef, { status: "occupied" }, { merge: true });
-    //       } else if (i <= occupied + reserved) {
-    //         batch.set(slotRef, { status: "reserved" }, { merge: true });
-    //       } else {
-    //         batch.set(slotRef, { status: "available" }, { merge: true });
-    //       }
-    //     }
-    //   });
-    // });
-
-    await batch.commit();
+  
+    // Use setDoc with merge: true instead of batch.update or updateDoc
+    await setDoc(parkingStatusRef, updates, { merge: true });
   }, []);
+
+  // const updateParkingStatus = useCallback(async (updates) => {
+
+  //   const batch = writeBatch(db);
+  //   const parkingStatusRef = doc(db, "parkingStatus", "current");
+
+  //   // Again, we're gonna remove logic related to updating parking slots
+  //   // Object.entries(updates.locations || {}).forEach(([locationKey, locationData]) => {
+  //   //   Object.entries(locationData).forEach(([vehicleType, typeData]) => {
+  //   //     const { occupied, reserved } = typeData;
+  //   //     for (let i = 1; i <= typeData.total; i++) {
+  //   //       const slotId = `${locationKey}_${vehicleType}_${i}`;
+  //   //       const slotRef = doc(db, "parkingSlots", slotId);
+  //   //       if (i <= occupied) {
+  //   //         batch.set(slotRef, { status: "occupied" }, { merge: true });
+  //   //       } else if (i <= occupied + reserved) {
+  //   //         batch.set(slotRef, { status: "reserved" }, { merge: true });
+  //   //       } else {
+  //   //         batch.set(slotRef, { status: "available" }, { merge: true });
+  //   //       }
+  //   //     }
+  //   //   });
+  //   // });
+
+  //   await batch.commit();
+  // }, []);
+
+  const handleManualRefresh = async () => {
+    await fetchBookings();
+    await fetchProfits();
+    await fetchParkingData();
+    console.log("Data refreshed manually");
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      console.log("Admin logged out successfully");
+      navigate("/");
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
 
   const handleBookingAction = useCallback(
     async (bookingId, action, parkingArea, vehicleType) => {
       const batch = writeBatch(db);
       const bookingRef = doc(db, "bookings", bookingId);
       const parkingStatusRef = doc(db, "parkingStatus", "current");
-
+  
       batch.update(bookingRef, {
         status: action,
         approvalTimestamp: serverTimestamp(),
       });
-
-      batch.update(parkingStatusRef, {
+  
+      const updates = {
         [`locations.${parkingArea}.${vehicleType}.${
           action === "approved" ? "occupied" : "available"
         }`]: increment(1),
@@ -330,12 +455,19 @@ const AdminDashboard = () => {
           action === "approved" ? "available" : "occupied"
         }`]: increment(-1),
         lastUpdated: serverTimestamp(),
-      });
-
+      };
+      
+      await setDoc(parkingStatusRef, updates, { merge: true });
       await batch.commit();
+  
+      // Refresh bookings data
+      await fetchBookings();
     },
-    []
+    [fetchBookings]
   );
+  
+  
+  
 
   const handlePaymentApproval = async (bookingId, action) => {
     try {
@@ -404,37 +536,37 @@ const AdminDashboard = () => {
     }
   };
 
-  useEffect(() => {
-    const unsubscribeBookings = fetchBookings();
-    fetchProfits();
+  // useEffect(() => {
+  //   const unsubscribeBookings = fetchBookings();
+  //   fetchProfits();
 
-    // Set up a real-time listener for parking status to update the status in the database
-    const parkingStatusRef = doc(db, "parkingStatus", "current");
-    const unsubscribeParkingStatus = onSnapshot(parkingStatusRef, (doc) => {
-      if (doc.exists()) {
-        const data = doc.data();
-        setParkingStats({
-          total: data.total || 0,
-          occupied: data.occupied || 0,
-          reserved: data.reserved || 0,
-          available: data.available || 0,
-          pwd: data.pwd || 0,
-        });
-        setSlotUtilization([
-          { name: "Available", value: data.available || 0, color: "#10B981" },
-          { name: "Occupied", value: data.occupied || 0, color: "#EF4444" },
-          { name: "Reserved", value: data.reserved || 0, color: "#F59E0B" },
-          { name: "PWD", value: data.pwd || 0, color: "#3B82F6" },
-        ]);
-        setParkingLocations(data.locations || {});
-      }
-    });
+  //   // Set up a real-time listener for parking status to update the status in the database
+  //   const parkingStatusRef = doc(db, "parkingStatus", "current");
+  //   const unsubscribeParkingStatus = onSnapshot(parkingStatusRef, (doc) => {
+  //     if (doc.exists()) {
+  //       const data = doc.data();
+  //       setParkingStats({
+  //         total: data.total || 0,
+  //         occupied: data.occupied || 0,
+  //         reserved: data.reserved || 0,
+  //         available: data.available || 0,
+  //         pwd: data.pwd || 0,
+  //       });
+  //       setSlotUtilization([
+  //         { name: "Available", value: data.available || 0, color: "#10B981" },
+  //         { name: "Occupied", value: data.occupied || 0, color: "#EF4444" },
+  //         { name: "Reserved", value: data.reserved || 0, color: "#F59E0B" },
+  //         { name: "PWD", value: data.pwd || 0, color: "#3B82F6" },
+  //       ]);
+  //       setParkingLocations(data.locations || {});
+  //     }
+  //   });
 
-    return () => {
-      unsubscribeBookings();
-      unsubscribeParkingStatus();
-    };
-  }, [fetchBookings, fetchProfits]);
+  //   return () => {
+  //     unsubscribeBookings();
+  //     unsubscribeParkingStatus();
+  //   };
+  // }, [fetchBookings, fetchProfits]);
 
   useEffect(() => {
     fetchParkingData();
@@ -461,7 +593,7 @@ const AdminDashboard = () => {
         ...prevStats,
         occupied: occupiedSlots,
         available: availableSlots,
-        total: totalSlots, 
+        total: totalSlots,
       };
 
       setSlotUtilization([
@@ -549,15 +681,15 @@ const AdminDashboard = () => {
     </div>
   );
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth); 
-      console.log("Admin logged out successfully");
-      navigate("/");
-    } catch (error) {
-      console.error("Error logging out:", error);
-    }
-  };
+  // const handleLogout = async () => {
+  //   try {
+  //     await signOut(auth);
+  //     console.log("Admin logged out successfully");
+  //     navigate("/");
+  //   } catch (error) {
+  //     console.error("Error logging out:", error);
+  //   }
+  // };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -568,7 +700,7 @@ const AdminDashboard = () => {
           </div>
           <div className="flex space-x-4">
             <button
-              onClick={handleLogout} 
+              onClick={handleLogout}
               className="px-3 py-1 md:px-4 md:py-2 rounded-full text-sm md:text-base border border-white hover:bg-white hover:text-gray-900 transition-colors"
             >
               Logout
@@ -582,19 +714,19 @@ const AdminDashboard = () => {
           <StatCard
             icon={Car}
             label="Total Slots"
-            value={parkingStats.total} 
+            value={parkingStats.total}
             className="text-sky-500"
           />
           <StatCard
             icon={Car}
             label="Available Slots"
-            value={parkingStats.available} 
+            value={parkingStats.available}
             className="text-green-500"
           />
           <StatCard
             icon={Clock}
             label="Occupied Slots"
-            value={parkingStats.occupied} 
+            value={parkingStats.occupied}
             className="text-red-500"
           />
           <StatCard

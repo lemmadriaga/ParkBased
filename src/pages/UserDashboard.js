@@ -10,13 +10,13 @@ import {
   where,
   getDocs,
   serverTimestamp,
-  writeBatch
+  writeBatch,
 } from "firebase/firestore";
 import ParkingMap from "./ParkingMap";
 import { useNavigate } from "react-router-dom";
 import JsBarcode from "jsbarcode";
 import BookingReceipt from "../pages/BookingReceipt";
-import { format, addHours } from 'date-fns'; 
+import { format, addHours } from 'date-fns';
 
 const UserDashboard = () => {
   const [userData, setUserData] = useState(null);
@@ -41,8 +41,8 @@ const UserDashboard = () => {
   const generateBarcode = useCallback(() => {
     if (isBookingLocked && barcodeRef.current && activeBooking) {
       const containerWidth = containerRef.current.offsetWidth;
-      const barcodeWidth = Math.min(containerWidth, 300); 
-      const barcodeHeight = Math.max(50, barcodeWidth / 3); 
+      const barcodeWidth = Math.min(containerWidth, 300);
+      const barcodeHeight = Math.max(50, barcodeWidth / 3);
 
       JsBarcode(barcodeRef.current, activeBooking.id, {
         format: "CODE128",
@@ -68,7 +68,6 @@ const UserDashboard = () => {
     const checkUserBooking = async () => {
       if (auth.currentUser) {
         try {
-          // This is for us to check for any active bookings for the current user
           const bookingsRef = collection(db, "bookings");
           const q = query(
             bookingsRef,
@@ -76,19 +75,17 @@ const UserDashboard = () => {
             where("status", "in", ["pending", "approved"])
           );
 
-          // Use getDocs instead of onSnapshot for less frequent reads because of the quota exceeding
+          // Fetch data once and cache it to reduce quota usage
           const querySnapshot = await getDocs(q);
           if (!querySnapshot.empty) {
             const bookingDoc = querySnapshot.docs[0];
             const booking = bookingDoc.data();
 
-            // Calculate if the booking is still active
             const checkInTime = new Date(booking.checkInTime);
             const expirationTime = new Date(checkInTime);
             expirationTime.setHours(expirationTime.getHours() + booking.hours);
 
             const now = new Date();
-
             if (now < expirationTime) {
               setActiveBooking({
                 ...booking,
@@ -99,16 +96,19 @@ const UserDashboard = () => {
               });
               setIsBookingLocked(true);
             } else {
-              // If booking has expired, update its status
-              const batch = writeBatch(db); 
-              batch.update(doc(db, "bookings", bookingDoc.id), { status: "completed" });
-              batch.update(doc(db, "users", auth.currentUser.uid), { hasActiveBooking: false });
+              const batch = writeBatch(db);
+              batch.update(doc(db, "bookings", bookingDoc.id), {
+                status: "completed",
+              });
+              batch.update(doc(db, "users", auth.currentUser.uid), {
+                hasActiveBooking: false,
+              });
 
               await batch.commit();
               setIsBookingLocked(false);
             }
           } else {
-            setIsBookingLocked(false); 
+            setIsBookingLocked(false);
           }
         } catch (error) {
           console.error("Error checking booking status:", error);
@@ -122,8 +122,8 @@ const UserDashboard = () => {
 
   useEffect(() => {
     generateBarcode();
-    window.addEventListener('resize', generateBarcode);
-    return () => window.removeEventListener('resize', generateBarcode);
+    window.addEventListener("resize", generateBarcode);
+    return () => window.removeEventListener("resize", generateBarcode);
   }, [generateBarcode]);
 
   const handleSlotSelect = (slotInfo) => {
@@ -138,7 +138,6 @@ const UserDashboard = () => {
     const [hours, minutes] = bookingDetails.checkInTime.split(":");
     checkInTime.setHours(hours, minutes, 0, 0);
 
-    // Allow booking only if check-in time is within the next 24 hours
     const maxFutureTime = new Date();
     maxFutureTime.setHours(maxFutureTime.getHours() + 24);
 
@@ -146,7 +145,7 @@ const UserDashboard = () => {
   };
 
   const calculateAmount = (hours) => {
-    const baseRate = 50; 
+    const baseRate = 50;
     return baseRate * hours;
   };
 
@@ -188,34 +187,28 @@ const UserDashboard = () => {
         expirationTime: expirationTime.toISOString(),
       };
 
-      const batch = writeBatch(db); 
+      const batch = writeBatch(db);
       batch.set(bookingRef, bookingData);
 
-      // Check if the slot exists before updating
       const slotRef = doc(db, "parkingSlots", selectedSlot.id);
       const slotDoc = await getDoc(slotRef);
       if (slotDoc.exists()) {
-
-        // Update the existing slot
         batch.update(slotRef, {
           status: "reserved",
           isPWD: bookingDetails.isPWD,
         });
       } else {
-        // Create a new parking slot document if it doesn't exist
-        const newSlotData = {
+        batch.set(slotRef, {
           status: "reserved",
           isPWD: bookingDetails.isPWD,
-        };
-        batch.set(slotRef, newSlotData);
-        console.log(`Created new parking slot: ${selectedSlot.id}`);
+        });
       }
 
       batch.update(doc(db, "users", auth.currentUser.uid), {
         hasActiveBooking: true,
       });
 
-      await batch.commit(); 
+      await batch.commit();
 
       setBookingStatus("Pending for Approval");
       setIsBookingLocked(true);
@@ -253,11 +246,273 @@ const UserDashboard = () => {
     if (activeBooking) {
       const checkInTime = new Date(activeBooking.checkInTime);
       const expirationTime = addHours(checkInTime, activeBooking.hours);
-      
-      return `${format(checkInTime, 'MMM d, h:mm a')} - ${format(expirationTime, 'h:mm a')}`;
+      return `${format(checkInTime, "MMM d, h:mm a")} - ${format(
+        expirationTime,
+        "h:mm a"
+      )}`;
     }
-    return '';
+    return "";
   }, [activeBooking]);
+
+// import React, { useState, useEffect, useRef, useCallback } from "react";
+// import { auth, db } from "../firebase";
+// import {
+//   doc,
+//   getDoc,
+//   setDoc,
+//   updateDoc,
+//   query,
+//   collection,
+//   where,
+//   getDocs,
+//   serverTimestamp,
+//   writeBatch
+// } from "firebase/firestore";
+// import ParkingMap from "./ParkingMap";
+// import { useNavigate } from "react-router-dom";
+// import JsBarcode from "jsbarcode";
+// import BookingReceipt from "../pages/BookingReceipt";
+// import { format, addHours } from 'date-fns'; 
+
+// const UserDashboard = () => {
+//   const [userData, setUserData] = useState(null);
+//   const [selectedArea, setSelectedArea] = useState("Parking 3");
+//   const [bookingDetails, setBookingDetails] = useState({
+//     hours: 3,
+//     contactNo: "",
+//     isPWD: false,
+//     checkInTime: "",
+//   });
+//   const [totalAmount, setTotalAmount] = useState(150.0);
+//   const [bookingStatus, setBookingStatus] = useState("Pending for Approval");
+//   const [vehicleType, setVehicleType] = useState("car");
+//   const [isBookingLocked, setIsBookingLocked] = useState(false);
+//   const [activeBooking, setActiveBooking] = useState(null);
+//   const [selectedSlot, setSelectedSlot] = useState(null);
+//   const [showReceipt, setShowReceipt] = useState(false);
+//   const barcodeRef = useRef(null);
+//   const containerRef = useRef(null);
+//   const navigate = useNavigate();
+
+//   const generateBarcode = useCallback(() => {
+//     if (isBookingLocked && barcodeRef.current && activeBooking) {
+//       const containerWidth = containerRef.current.offsetWidth;
+//       const barcodeWidth = Math.min(containerWidth, 300); 
+//       const barcodeHeight = Math.max(50, barcodeWidth / 3); 
+
+//       JsBarcode(barcodeRef.current, activeBooking.id, {
+//         format: "CODE128",
+//         width: 2,
+//         height: barcodeHeight,
+//         displayValue: true,
+//         fontSize: 12,
+//         margin: 10,
+//       });
+//     }
+//   }, [isBookingLocked, activeBooking]);
+
+//   useEffect(() => {
+//     const fetchUserData = async () => {
+//       if (auth.currentUser) {
+//         const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
+//         if (userDoc.exists()) {
+//           setUserData(userDoc.data());
+//         }
+//       }
+//     };
+
+//     const checkUserBooking = async () => {
+//       if (auth.currentUser) {
+//         try {
+//           // This is for us to check for any active bookings for the current user
+//           const bookingsRef = collection(db, "bookings");
+//           const q = query(
+//             bookingsRef,
+//             where("userId", "==", auth.currentUser.uid),
+//             where("status", "in", ["pending", "approved"])
+//           );
+
+//           // Use getDocs instead of onSnapshot for less frequent reads because of the quota exceeding
+//           const querySnapshot = await getDocs(q);
+//           if (!querySnapshot.empty) {
+//             const bookingDoc = querySnapshot.docs[0];
+//             const booking = bookingDoc.data();
+
+//             // Calculate if the booking is still active
+//             const checkInTime = new Date(booking.checkInTime);
+//             const expirationTime = new Date(checkInTime);
+//             expirationTime.setHours(expirationTime.getHours() + booking.hours);
+
+//             const now = new Date();
+
+//             if (now < expirationTime) {
+//               setActiveBooking({
+//                 ...booking,
+//                 id: bookingDoc.id,
+//                 firstName: userData?.firstName,
+//                 lastName: userData?.lastName,
+//                 plateNumber: userData?.plateNumber,
+//               });
+//               setIsBookingLocked(true);
+//             } else {
+//               const batch = writeBatch(db); 
+//               batch.update(doc(db, "bookings", bookingDoc.id), { status: "completed" });
+//               batch.update(doc(db, "users", auth.currentUser.uid), { hasActiveBooking: false });
+
+//               await batch.commit();
+//               setIsBookingLocked(false);
+//             }
+//           } else {
+//             setIsBookingLocked(false); 
+//           }
+//         } catch (error) {
+//           console.error("Error checking booking status:", error);
+//         }
+//       }
+//     };
+
+//     fetchUserData();
+//     checkUserBooking();
+//   }, [userData]);
+
+//   useEffect(() => {
+//     generateBarcode();
+//     window.addEventListener('resize', generateBarcode);
+//     return () => window.removeEventListener('resize', generateBarcode);
+//   }, [generateBarcode]);
+
+//   const handleSlotSelect = (slotInfo) => {
+//     setSelectedSlot(slotInfo);
+//   };
+
+//   const isValidCheckInTime = () => {
+//     if (!bookingDetails.checkInTime) return false;
+
+//     const now = new Date();
+//     const checkInTime = new Date();
+//     const [hours, minutes] = bookingDetails.checkInTime.split(":");
+//     checkInTime.setHours(hours, minutes, 0, 0);
+
+//     // Allow booking only if check-in time is within the next 24 hours
+//     const maxFutureTime = new Date();
+//     maxFutureTime.setHours(maxFutureTime.getHours() + 24);
+
+//     return checkInTime >= now && checkInTime <= maxFutureTime;
+//   };
+
+//   const calculateAmount = (hours) => {
+//     const baseRate = 50; 
+//     return baseRate * hours;
+//   };
+
+//   const handleHoursChange = (e) => {
+//     const hours = parseInt(e.target.value);
+//     setBookingDetails((prev) => ({ ...prev, hours }));
+//     setTotalAmount(calculateAmount(hours));
+//   };
+
+//   const handleReserveBooking = async () => {
+//     if (!auth.currentUser || isBookingLocked || !isValidCheckInTime()) {
+//       alert("Invalid booking request. Please check your check-in time.");
+//       return;
+//     }
+
+//     if (!selectedSlot) {
+//       alert("Please select a parking slot before booking.");
+//       return;
+//     }
+
+//     try {
+//       const bookingRef = doc(collection(db, "bookings"));
+//       const checkInTime = new Date();
+//       const [hours, minutes] = bookingDetails.checkInTime.split(":");
+//       checkInTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+//       const expirationTime = new Date(checkInTime);
+//       expirationTime.setHours(expirationTime.getHours() + bookingDetails.hours);
+
+//       const bookingData = {
+//         userId: auth.currentUser.uid,
+//         parkingArea: selectedArea,
+//         selectedSlot,
+//         ...bookingDetails,
+//         totalAmount,
+//         status: "pending",
+//         timestamp: serverTimestamp(),
+//         checkInTime: checkInTime.toISOString(),
+//         expirationTime: expirationTime.toISOString(),
+//       };
+
+//       const batch = writeBatch(db); 
+//       batch.set(bookingRef, bookingData);
+
+//       // Check if the slot exists before updating
+//       const slotRef = doc(db, "parkingSlots", selectedSlot.id);
+//       const slotDoc = await getDoc(slotRef);
+//       if (slotDoc.exists()) {
+
+//         // Update the existing slot
+//         batch.update(slotRef, {
+//           status: "reserved",
+//           isPWD: bookingDetails.isPWD,
+//         });
+//       } else {
+//         // Create a new parking slot document if it doesn't exist
+//         const newSlotData = {
+//           status: "reserved",
+//           isPWD: bookingDetails.isPWD,
+//         };
+//         batch.set(slotRef, newSlotData);
+//         console.log(`Created new parking slot: ${selectedSlot.id}`);
+//       }
+
+//       batch.update(doc(db, "users", auth.currentUser.uid), {
+//         hasActiveBooking: true,
+//       });
+
+//       await batch.commit(); 
+
+//       setBookingStatus("Pending for Approval");
+//       setIsBookingLocked(true);
+//       setActiveBooking({
+//         ...bookingData,
+//         id: bookingRef.id,
+//       });
+
+//       alert("Booking request sent successfully!");
+//     } catch (error) {
+//       console.error("Error creating booking:", error);
+//       alert("Error creating booking. Please try again.");
+//     }
+//   };
+
+//   const handleLogout = async () => {
+//     try {
+//       await auth.signOut();
+//       navigate("/");
+//     } catch (error) {
+//       console.error("Error logging out:", error);
+//       alert("Error logging out. Please try again.");
+//     }
+//   };
+
+//   const generateReceipt = () => {
+//     if (activeBooking) {
+//       setShowReceipt(true);
+//     } else {
+//       alert("No active booking found.");
+//     }
+//   };
+
+//   const formatBookingTime = useCallback(() => {
+//     if (activeBooking) {
+//       const checkInTime = new Date(activeBooking.checkInTime);
+//       const expirationTime = addHours(checkInTime, activeBooking.hours);
+      
+//       return `${format(checkInTime, 'MMM d, h:mm a')} - ${format(expirationTime, 'h:mm a')}`;
+//     }
+//     return '';
+//   }, [activeBooking]);
 
   return (
     <div className="min-h-screen bg-gray-50">

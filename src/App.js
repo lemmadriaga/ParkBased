@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { HashRouter as Router, Route, Routes } from "react-router-dom";  // Change this line
 import LandingPage from "./pages/LandingPage";
 import UserDashboard from "./pages/UserDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -17,23 +17,38 @@ const App = () => {
       // Fetch registered users
       const usersCollection = collection(db, "users");
       const usersSnapshot = await getDocs(usersCollection);
-      setRegisteredUsers(usersSnapshot.size);
-
+      
+      // Check if the snapshot is empty
+      if (usersSnapshot.empty) {
+        console.warn("No users found in the database.");
+        setRegisteredUsers(0);
+      } else {
+        setRegisteredUsers(usersSnapshot.size);
+      }
+  
       // Fetch active users
       const activeUsersQuery = query(usersCollection, where("active", "==", true));
       const activeUsersSnapshot = await getDocs(activeUsersQuery);
-      setActiveUsers(activeUsersSnapshot.size);
+  
+      // Check if the snapshot for active users is empty
+      if (activeUsersSnapshot.empty) {
+        console.warn("No active users found in the database.");
+        setActiveUsers(0);
+      } else {
+        setActiveUsers(activeUsersSnapshot.size);
+      }
     } catch (error) {
       console.error("Error fetching users: ", error);
     }
   };
+  
 
   useEffect(() => {
     fetchUserCounts();
   }, []);
 
   return (
-    <Router>
+    <Router>  
       <Routes>
         <Route
           path="/"
@@ -59,4 +74,3 @@ const App = () => {
 };
 
 export default App;
-
